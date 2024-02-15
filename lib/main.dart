@@ -1,169 +1,188 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter/material.dart';
+
 
 void main() {
-  runApp(SnakeGame());
+  runApp(SnakeGameApp());
 }
 
-class SnakeGame extends StatelessWidget {
+
+ // This class epresents the entire application
+class SnakeGameApp extends StatelessWidget {     
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        backgroundColor: Colors.black,
-        body: SnakeGameScreen(),
-      ),
+    return MaterialApp(              // MaterialApp widget, that provides app structure and theme.
+      home: SnakeGame(),             
     );
   }
 }
 
-class SnakeGameScreen extends StatefulWidget {
+// This represents the game itself
+class SnakeGame extends StatefulWidget {
   @override
-  _SnakeGameScreenState createState() => _SnakeGameScreenState();
+  _SnakeGameState createState() => _SnakeGameState();
 }
 
-class _SnakeGameScreenState extends State<SnakeGameScreen> {
-  static const int gridSize = 20;
-  static const int speed = 300;
+// In this class we define the basic functionality, the state of the game:
+class _SnakeGameState extends State<SnakeGame> {
+  static const int CELL_SIZE = 20;
+  static const int GRID_WIDTH = 20;
+  static const int GRID_HEIGHT = 35;
+  static const int SPEED = 300;
 
-  late List<int> snake;
-  late int food;
+  List<Point<int>> snake = [];
+  Point<int> food = Point(0, 0);
   late Direction direction;
-  late bool isPlaying;
-  late int score;
+  late Timer timer;
 
+
+// This method is called when the state object is inserted into the tree.
+// It calls the startGame method to initialize the game.
   @override
   void initState() {
     super.initState();
     startGame();
   }
 
+// This method is called when the state object is removed from the tree.
+// It cancels the timer to stop the game loop.
+  @override
+  void dispose() {
+    timer.cancel();
+    super.dispose();
+  }
+
+// This method initializes the game by setting up the initial state of the snake, 
+// starting the game loop with a timer, and spawning the initial food.
   void startGame() {
-    const startPosition = gridSize * gridSize ~/ 2;
-    snake = [startPosition];
-    food = _generateFood();
+    snake = [Point(5, 5), Point(5, 6), Point(5, 7)];
     direction = Direction.right;
-    isPlaying = true;
-    score = 0;
-
-    Timer.periodic(Duration(milliseconds: speed), (Timer timer) {
-      if (!isPlaying) {
-        timer.cancel();
-      } else {
-        _moveSnake();
-      }
+    timer = Timer.periodic(Duration(milliseconds: SPEED), (Timer t) {
+      updateGame();
     });
+    spawnFood();
   }
 
-  void _moveSnake() {
-    setState(() {
-      switch (direction) {
-        case Direction.up:
-          if (snake.first < gridSize) {
-            isPlaying = false;
-            return;
-          }
-          snake.insert(0, snake.first - gridSize);
-          break;
-        case Direction.down:
-          if (snake.first > (gridSize * gridSize) - gridSize) {
-            isPlaying = false;
-            return;
-          }
-          snake.insert(0, snake.first + gridSize);
-          break;
-        case Direction.left:
-          if (snake.first % gridSize == 0) {
-            isPlaying = false;
-            return;
-          }
-          snake.insert(0, snake.first - 1);
-          break;
-        case Direction.right:
-          if ((snake.first + 1) % gridSize == 0) {
-            isPlaying = false;
-            return;
-          }
-          snake.insert(0, snake.first + 1);
-          break;
-      }
+  void updateGame() {
+    Point<int> head = snake.first;
+    Point<int> newHead = Point(0, 0);
 
-      if (snake.first == food) {
-        score++;
-        food = _generateFood();
-      } else {
-        snake.removeLast();
-      }
-    });
+    switch (direction) {
+      case Direction.left:
+        newHead = Point(head.x - 1, head.y);
+        break;
+      case Direction.right:
+        newHead = Point(head.x + 1, head.y);
+        break;
+      case Direction.up:
+        newHead = Point(head.x, head.y - 1);
+        break;
+      case Direction.down:
+        newHead = Point(head.x, head.y + 1);
+        break;
+    }
+
+    // Check if new head collides with the snake or hits the wall
+    if (snake.contains(newHead) ||
+        newHead.x < 0 ||
+        newHead.x >= GRID_WIDTH ||
+        newHead.y < 0 ||
+        newHead.y >= GRID_HEIGHT) {
+      timer.cancel(); // Stop the game
+      return;
+    }
+
+    snake.insert(0, newHead);
+
+    // Check if snake eats the food
+    if (newHead == food) {
+      spawnFood();
+    } else {
+      snake.removeLast();
+    }
+
+    setState(() {}); // Update UI
   }
 
-  int _generateFood() {
-    final random = Random();
-    int foodIndex;
+  void spawnFood() {
+    Random random = Random();
+    int x, y;
     do {
-      foodIndex = random.nextInt(gridSize * gridSize);
-    } while (snake.contains(foodIndex));
-    return foodIndex;
+      x = random.nextInt(GRID_WIDTH);
+      y = random.nextInt(GRID_HEIGHT);
+    } while (snake.contains(Point(x, y)));
+
+    food = Point(x, y);
   }
 
+
+  // Here we build the UI
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onVerticalDragUpdate: (details) {
-        if (details.delta.dy > 0 && direction != Direction.up) {
-          direction = Direction.down;
-        } else if (details.delta.dy < 0 && direction != Direction.down) {
-          direction = Direction.up;
-        }
-      },
-      onHorizontalDragUpdate: (details) {
-        if (details.delta.dx > 0 && direction != Direction.left) {
-          direction = Direction.right;
-        } else if (details.delta.dx < 0 && direction != Direction.right) {
-          direction = Direction.left;
-        }
-      },
-      child: Column(
-        children: [
-          Text(
-            'Score: $score',
-            style: TextStyle(color: Colors.white, fontSize: 20),
-          ),
-          Expanded(
-            child: GridView.builder(
-              physics: NeverScrollableScrollPhysics(),
-              itemCount: gridSize * gridSize,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: gridSize,
-              ),
-              itemBuilder: (BuildContext context, int index) {
-                if (snake.contains(index)) {
-                  return Container(
-                    padding: EdgeInsets.all(2),
-                    color: Colors.green,
-                  );
-                } else if (food == index) {
-                  return Container(
-                    padding: EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.rectangle,
-                    ),
-                  );
-                } else {
-                  return Container(
-                    padding: EdgeInsets.all(2),
-                    color: Colors.black,
-                  );
-                }
-              },
+    return Scaffold(
+      body: GestureDetector(
+        onVerticalDragUpdate: (details) {
+          if (details.delta.dy > 0 && direction != Direction.up) {
+            direction = Direction.down;
+          } else if (details.delta.dy < 0 && direction != Direction.down) {
+            direction = Direction.up;
+          }
+        },
+        onHorizontalDragUpdate: (details) {
+          if (details.delta.dx > 0 && direction != Direction.left) {
+            direction = Direction.right;
+          } else if (details.delta.dx < 0 && direction != Direction.right) {
+            direction = Direction.left;
+          }
+        },
+        child: Center(
+          child: GridView.builder(                            // GridView.builder creates a grid of cells representing the game board.
+            physics: NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: GRID_WIDTH,
             ),
+            itemCount: GRID_WIDTH * GRID_HEIGHT,
+            itemBuilder: (BuildContext context, int index) {
+              int x = index % GRID_WIDTH;
+              int y = index ~/ GRID_WIDTH;
+              Point<int> point = Point(x, y);
+              if (snake.contains(point)) {
+                return Container(
+                  color: Colors.black,
+                  child: Center(
+                    child: Container(
+                      width: CELL_SIZE * 0.8,
+                      height: CELL_SIZE * 0.8,
+                      color: Colors.green,
+                    ),
+                  ),
+                );
+              } else if (food == point) {
+                return Container(
+                  color: Colors.black,
+                  child: Center(
+                    child: Container(
+                      width: CELL_SIZE * 0.8,
+                      height: CELL_SIZE * 0.8,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ),
+                );
+              } else {
+                return Container(
+                  color: Colors.black,
+                );
+              }
+            },
           ),
-        ],
+        ),
       ),
     );
   }
 }
-
+// Defining the possible directions the snake can move.
 enum Direction { up, down, left, right }
