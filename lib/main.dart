@@ -2,18 +2,67 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 
-
 void main() {
   runApp(SnakeGameApp());
 }
 
-
- // This class epresents the entire application
-class SnakeGameApp extends StatelessWidget {     
+// This class epresents the entire application
+class SnakeGameApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(              // MaterialApp widget, that provides app structure and theme.
-      home: SnakeGame(),             
+    return MaterialApp(
+      // MaterialApp widget, that provides app structure and theme.
+      home: MainMenu(),
+    );
+  }
+}
+class MainMenu extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Snake Game'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SnakeGame()),
+                );
+              },
+              child: Text('PLAY'),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+               onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => HighscoresScreen()),
+                );
+              },
+              child: Text('HIGHSCORES'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class HighscoresScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Highscores'),
+      ),
+      body: Center(
+        child: Text('Highscores will be displayed here.'),
+      ),
     );
   }
 }
@@ -36,7 +85,6 @@ class _SnakeGameState extends State<SnakeGame> {
   late Direction direction;
   late Timer timer;
 
-
 // This method is called when the state object is inserted into the tree.
 // It calls the startGame method to initialize the game.
   @override
@@ -53,7 +101,7 @@ class _SnakeGameState extends State<SnakeGame> {
     super.dispose();
   }
 
-// This method initializes the game by setting up the initial state of the snake, 
+// This method initializes the game by setting up the initial state of the snake,
 // starting the game loop with a timer, and spawning the initial food.
   void startGame() {
     snake = [Point(5, 5), Point(5, 6), Point(5, 7)];
@@ -116,7 +164,6 @@ class _SnakeGameState extends State<SnakeGame> {
     food = Point(x, y);
   }
 
-
   // Here we build the UI
   @override
   Widget build(BuildContext context) {
@@ -137,9 +184,12 @@ class _SnakeGameState extends State<SnakeGame> {
           }
         },
         child: Center(
-          child: GridView.builder(                            // GridView.builder creates a grid of cells representing the game board.
+          child: GridView.builder(
+            // GridView.builder creates a grid of cells representing the game board.
             physics: NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              mainAxisSpacing: 0, // Set to 0 to remove spacing
+              crossAxisSpacing: 0.0, // Set to 0 to remove spacing
               crossAxisCount: GRID_WIDTH,
             ),
             itemCount: GRID_WIDTH * GRID_HEIGHT,
@@ -152,8 +202,8 @@ class _SnakeGameState extends State<SnakeGame> {
                   color: Colors.black,
                   child: Center(
                     child: Container(
-                      width: CELL_SIZE * 0.8,
-                      height: CELL_SIZE * 0.8,
+                      width: CELL_SIZE * 1.3,
+                      height: CELL_SIZE * 1.3,
                       color: Colors.green,
                     ),
                   ),
@@ -163,8 +213,8 @@ class _SnakeGameState extends State<SnakeGame> {
                   color: Colors.black,
                   child: Center(
                     child: Container(
-                      width: CELL_SIZE * 0.8,
-                      height: CELL_SIZE * 0.8,
+                      width: CELL_SIZE * 0.9,
+                      height: CELL_SIZE * 0.9,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.red,
@@ -184,5 +234,6 @@ class _SnakeGameState extends State<SnakeGame> {
     );
   }
 }
+
 // Defining the possible directions the snake can move.
 enum Direction { up, down, left, right }
