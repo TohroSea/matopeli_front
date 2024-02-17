@@ -84,7 +84,7 @@ class _SnakeGameState extends State<SnakeGame> {
   Point<int> food = Point(0, 0);
   late Direction direction;
   late Timer timer;
-
+  int score = 0; //  to track the score
 // This method is called when the state object is inserted into the tree.
 // It calls the startGame method to initialize the game.
   @override
@@ -106,6 +106,7 @@ class _SnakeGameState extends State<SnakeGame> {
   void startGame() {
     snake = [Point(5, 5), Point(5, 6), Point(5, 7)];
     direction = Direction.right;
+    score = 0; // Reset score
     timer = Timer.periodic(Duration(milliseconds: SPEED), (Timer t) {
       updateGame();
     });
@@ -138,6 +139,7 @@ class _SnakeGameState extends State<SnakeGame> {
         newHead.y < 0 ||
         newHead.y >= GRID_HEIGHT) {
       timer.cancel(); // Stop the game
+      gameOver();    // Display the game over menu
       return;
     }
 
@@ -145,6 +147,7 @@ class _SnakeGameState extends State<SnakeGame> {
 
     // Check if snake eats the food
     if (newHead == food) {
+      score++; // Increment score when food is eaten
       spawnFood();
     } else {
       snake.removeLast();
@@ -164,72 +167,122 @@ class _SnakeGameState extends State<SnakeGame> {
     food = Point(x, y);
   }
 
+ void gameOver() {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Game Over'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Score: $score'), // Display final score
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close the dialog
+                    startGame(); // Restart the game
+                  },
+                  child: Text('PLAY AGAIN'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    // Implement score submission
+                  },
+                  child: Text('SUBMIT SCORE'),
+                ),
+              ],
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop(); // Close the game screen
+              },
+              child: Text('EXIT'),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
   // Here we build the UI
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: GestureDetector(
-        onVerticalDragUpdate: (details) {
-          if (details.delta.dy > 0 && direction != Direction.up) {
-            direction = Direction.down;
-          } else if (details.delta.dy < 0 && direction != Direction.down) {
-            direction = Direction.up;
-          }
-        },
-        onHorizontalDragUpdate: (details) {
-          if (details.delta.dx > 0 && direction != Direction.left) {
-            direction = Direction.right;
-          } else if (details.delta.dx < 0 && direction != Direction.right) {
-            direction = Direction.left;
-          }
-        },
-        child: Center(
-          child: GridView.builder(
-            // GridView.builder creates a grid of cells representing the game board.
-            physics: NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              mainAxisSpacing: 0, // Set to 0 to remove spacing
-              crossAxisSpacing: 0.0, // Set to 0 to remove spacing
-              crossAxisCount: GRID_WIDTH,
-            ),
-            itemCount: GRID_WIDTH * GRID_HEIGHT,
-            itemBuilder: (BuildContext context, int index) {
-              int x = index % GRID_WIDTH;
-              int y = index ~/ GRID_WIDTH;
-              Point<int> point = Point(x, y);
-              if (snake.contains(point)) {
-                return Container(
-                  color: Colors.black,
-                  child: Center(
-                    child: Container(
-                      width: CELL_SIZE * 1.3,
-                      height: CELL_SIZE * 1.3,
-                      color: Colors.green,
-                    ),
-                  ),
-                );
-              } else if (food == point) {
-                return Container(
-                  color: Colors.black,
-                  child: Center(
-                    child: Container(
-                      width: CELL_SIZE * 0.9,
-                      height: CELL_SIZE * 0.9,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.red,
-                      ),
-                    ),
-                  ),
-                );
-              } else {
-                return Container(
-                  color: Colors.black,
-                );
-              }
-            },
+      backgroundColor: Colors.black,
+      body: Column(
+        children: [
+          SizedBox(height: 20),
+          Text(
+            'Score: $score',
+            style: TextStyle(color: Colors.white, fontSize: 24),
           ),
-        ),
+          Expanded(
+            child: GestureDetector(
+              onVerticalDragUpdate: (details) {
+                if (details.delta.dy > 0 && direction != Direction.up) {
+                  direction = Direction.down;
+                } else if (details.delta.dy < 0 && direction != Direction.down) {
+                  direction = Direction.up;
+                }
+              },
+              onHorizontalDragUpdate: (details) {
+                if (details.delta.dx > 0 && direction != Direction.left) {
+                  direction = Direction.right;
+                } else if (details.delta.dx < 0 && direction != Direction.right) {
+                  direction = Direction.left;
+                }
+              },
+              child: GridView.builder(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: GRID_WIDTH,
+                ),
+                itemCount: GRID_WIDTH * GRID_HEIGHT,
+                itemBuilder: (BuildContext context, int index) {
+                  int x = index % GRID_WIDTH;
+                  int y = index ~/ GRID_WIDTH;
+                  Point<int> point = Point(x, y);
+                  if (snake.contains(point)) {
+                    return Container(
+                      color: Colors.black,
+                      child: Center(
+                        child: Container(
+                          width: CELL_SIZE * 1.3,
+                          height: CELL_SIZE * 1.3,
+                          color: Colors.green,
+                        ),
+                      ),
+                    );
+                  } else if (food == point) {
+                    return Container(
+                      color: Colors.black,
+                      child: Center(
+                        child: Container(
+                          width: CELL_SIZE * 1,
+                          height: CELL_SIZE * 1,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ),
+                    );
+                  } else {
+                    return Container(
+                      color: Colors.black,
+                    );
+                  }
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
