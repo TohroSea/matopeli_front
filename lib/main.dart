@@ -20,13 +20,20 @@ class MainMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Snake Game'),
-      ),
+      backgroundColor: Colors.black,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+          Text(
+            'SNAKE',
+            style: TextStyle(
+              color: Colors.green,
+              fontSize: 48,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+            SizedBox(height: 60),
             ElevatedButton(
               onPressed: () {
                 Navigator.push(
@@ -36,6 +43,7 @@ class MainMenu extends StatelessWidget {
               },
               child: Text('PLAY'),
             ),
+            
             SizedBox(height: 20),
             ElevatedButton(
                onPressed: () {
@@ -169,7 +177,7 @@ class _SnakeGameState extends State<SnakeGame> {
 
  void gameOver() {
   showDialog(
-    context: context,
+    context: context,barrierDismissible: false, // Prevent dismissing by tapping outside
     builder: (BuildContext context) {
       return AlertDialog(
         title: Text('Game Over'),
