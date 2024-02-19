@@ -1,10 +1,32 @@
 import 'dart:async';
+// import 'dart:html';
 import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(SnakeGameApp());
 }
+Future<void> lahetaPisteetPalvelimelle(String username, int pisteet) async {
+    const String apiUrl = 'https://matopeli-jkth.azurewebsites.net/api/submit';
+    Map<String,String> headers = {
+      'Content-type' : 'application/json', 
+      'Accept': 'application/json',
+    };
+    final vastaus = await http.post(
+      Uri.parse(apiUrl),
+      headers: headers,
+      body: jsonEncode({'name': username, 'points': pisteet}),
+    );
+
+    if (vastaus.statusCode == 200) {
+      print("Pisteiden lähetys onnistui");
+    }
+    else {
+      print("Jokin meni vikaan lähettäessä pisteitä.");
+    }
+  }
 
 // This class epresents the entire application
 class SnakeGameApp extends StatelessWidget {
@@ -61,43 +83,105 @@ class MainMenu extends StatelessWidget {
   }
 }
 
-class HighscoresScreen extends StatelessWidget {
+class HighscoresScreen extends StatefulWidget {
+  @override
+  _HighscoresScreenState createState() => _HighscoresScreenState();
+}
+
+class _HighscoresScreenState extends State<HighscoresScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  List<Map<String, dynamic>> localHighscores = [];
+  List<Map<String, dynamic>> cloudHighscores = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    fetchHighscores(); // Fetch highscores when the widget initializes
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> fetchHighscores() async {
+
+    final cloudResponse = await http.get(Uri.parse('https://matopeli-jkth.azurewebsites.net/api/highscores'));
+    if (cloudResponse.statusCode == 200) {
+      setState(() {
+        cloudHighscores = jsonDecode(cloudResponse.body).cast<Map<String, dynamic>>();
+      });
+    } else {
+      throw Exception('Failed to load cloud highscores');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Highscores'),
       ),
-      body: DefaultTabController(
-        length: 2, // Number of tabs
+      body: GestureDetector(
+        onHorizontalDragEnd: (details) {
+          if (details.primaryVelocity! > 0) {
+            // Swiped to the right
+            if (_tabController.index > 0) {
+              _tabController.animateTo(_tabController.index - 1);
+            }
+          } else if (details.primaryVelocity! < 0) {
+            // Swiped to the left
+            if (_tabController.index < _tabController.length - 1) {
+              _tabController.animateTo(_tabController.index + 1);
+            }
+          }
+        },
         child: Column(
           children: [
             TabBar(
+              controller: _tabController,
               tabs: [
                 Tab(text: 'Local Scores'),
                 Tab(text: 'Cloud Scores'),
               ],
             ),
             Expanded(
-              child: GestureDetector(
-                onHorizontalDragEnd: (details) {
-                  if (details.primaryVelocity! > 0) {
-                    // Swiped to the right
-                    Navigator.pop(context);
-                  }
-                },
-                child: TabBarView(
-                  children: [
-                    // Content for Local Scores tab
-                    Center(
-                      child: Text('Local Scores'),
-                    ),
-                    // Content for Cloud Scores tab
-                    Center(
-                      child: Text('Cloud Scores'),
-                    ),
-                  ],
-                ),
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  // Content for Local Scores tab
+                  localHighscores.isEmpty
+                      ? Center(child: CircularProgressIndicator())
+                      : ListView.builder(
+                          itemCount: localHighscores.length,
+                          itemBuilder: (context, index) {
+                            final highscore = localHighscores[index];
+                            return ListTile(
+                              leading: Text((index + 1).toString()), // Index number
+                              title: Text(highscore['name'].toString()), // Username
+                              trailing: Text(highscore['points'].toString()), // Score
+                            );
+                          },
+                        ),
+                  // Content for Cloud Scores tab
+                  cloudHighscores.isEmpty
+                      ? Center(child: CircularProgressIndicator())
+                      : ListView.builder(
+                          itemCount: cloudHighscores.length,
+                          itemBuilder: (context, index) {
+                            final highscore = cloudHighscores[index];
+                            return ListTile(
+                              leading: Text((index + 1).toString()), // Index number
+                              title: Text(highscore['name'].toString()), // Username
+                              trailing: Text(highscore['points'].toString()), // Score
+                            );
+                          },
+                        ),
+                ],
               ),
             ),
           ],
@@ -106,7 +190,6 @@ class HighscoresScreen extends StatelessWidget {
     );
   }
 }
-
 
 // This represents the game itself
 class SnakeGame extends StatefulWidget {
@@ -231,7 +314,8 @@ class _SnakeGameState extends State<SnakeGame> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    // Implement score submission
+                    Navigator.pop(context); // Close the dialog
+                    showSubmitHighscore(score); // Restart the game
                   },
                   child: Text('SUBMIT SCORE'),
                 ),
@@ -251,6 +335,55 @@ class _SnakeGameState extends State<SnakeGame> {
     },
   );
 }
+
+
+
+void showSubmitHighscore(int score) {
+  
+    String username = '';
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Submit Highscore'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Points: $score'),
+              TextField(
+                onChanged: (value) {
+                  username = value;
+                },
+                decoration: InputDecoration(
+                  labelText: 'Username',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close the dialog
+              },
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Handle submitting the highscore
+                lahetaPisteetPalvelimelle(username, score);
+                // print('Username: $username, Score: $score');
+                Navigator.pop(context); // Close the dialog
+                Navigator.of(context).pop();
+              },
+              child: Text('Submit'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 
   // Here we build the UI
   @override
