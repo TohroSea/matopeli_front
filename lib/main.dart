@@ -68,12 +68,45 @@ class HighscoresScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text('Highscores'),
       ),
-      body: Center(
-        child: Text('Highscores will be displayed here.'),
+      body: DefaultTabController(
+        length: 2, // Number of tabs
+        child: Column(
+          children: [
+            TabBar(
+              tabs: [
+                Tab(text: 'Local Scores'),
+                Tab(text: 'Cloud Scores'),
+              ],
+            ),
+            Expanded(
+              child: GestureDetector(
+                onHorizontalDragEnd: (details) {
+                  if (details.primaryVelocity! > 0) {
+                    // Swiped to the right
+                    Navigator.pop(context);
+                  }
+                },
+                child: TabBarView(
+                  children: [
+                    // Content for Local Scores tab
+                    Center(
+                      child: Text('Local Scores'),
+                    ),
+                    // Content for Cloud Scores tab
+                    Center(
+                      child: Text('Cloud Scores'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+
 
 // This represents the game itself
 class SnakeGame extends StatefulWidget {
