@@ -1,7 +1,5 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
-
 
 import 'push_and_fetch_score.dart';
 

@@ -138,50 +138,50 @@ class _SnakeGameState extends State<SnakeGame> {
     food = Point(x, y);
   }
 
- void gameOver() {
-  showDialog(
-    context: context,barrierDismissible: false, // Prevent dismissing by tapping outside
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Game Over'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Score: $score'), // Display final score
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context); // Close the dialog
-                    startGame(); // Restart the game
-                  },
-                  child: const Text('PLAY AGAIN'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context); // Close the dialog
-                    showSubmitHighscore(score); // Restart the game
-                  },
-                  child: const Text('SUBMIT SCORE'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-                Navigator.of(context).pop(); // Close the game screen
-              },
-              child: const Text('EXIT'),
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
+  void gameOver() {
+    showDialog(
+      context: context,barrierDismissible: false, // Prevent dismissing by tapping outside
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Center(child: Text('Game Over')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [           
+              Text('Score: $score'), // Display final score
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close the dialog
+                      startGame(); // Restart the game
+                    },
+                    child: const Text('PLAY AGAIN'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close the dialog
+                      showSubmitHighscore(score); // Restart the game
+                    },
+                    child: const Text('SUBMIT SCORE'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the dialog
+                  Navigator.of(context).pop(); // Close the game screen
+                },
+                child: const Text('EXIT'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
 
 void showSubmitHighscore(int score) {
@@ -190,7 +190,7 @@ void showSubmitHighscore(int score) {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Submit Highscore'),
+          title: const Center(child: Text('Submit Highscore')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -209,6 +209,7 @@ void showSubmitHighscore(int score) {
             TextButton(
               onPressed: () {
                 Navigator.pop(context); // Close the dialog
+                Navigator.of(context).pop();
               },
               child: const Text('Cancel'),
             ),
@@ -242,18 +243,11 @@ void showSubmitHighscore(int score) {
 
 
 
-
-
-
-
-
-
-
   // Here we build the UI
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 10, 10, 10),
+      backgroundColor: const Color.fromARGB(255, 10, 10, 10),
       body: Column(
         children: [
           const SizedBox(height: 40),
@@ -290,7 +284,7 @@ void showSubmitHighscore(int score) {
                   Point<int> point = Point(x, y);
                   if (snake.contains(point)) {
                     return Container(
-                      color: Color.fromARGB(255, 0, 0, 0),
+                      color: const Color.fromARGB(255, 0, 0, 0),
                       child: Center(
                         child: Container(
                           width: cellSize * 1,
