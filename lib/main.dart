@@ -253,14 +253,15 @@ void showSubmitHighscore(int score) {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Color.fromARGB(255, 10, 10, 10),
       body: Column(
         children: [
-          const SizedBox(height: 50),
+          const SizedBox(height: 40),
           Text(
             'Score: $score',
-            style: const TextStyle(color: Colors.white, fontSize: 24),
+            style: const TextStyle(color: Colors.white, fontSize: 34),
           ),
+          
           Expanded(
             child: GestureDetector(
               onVerticalDragUpdate: (details) {
@@ -292,8 +293,8 @@ void showSubmitHighscore(int score) {
                       color: Color.fromARGB(255, 0, 0, 0),
                       child: Center(
                         child: Container(
-                          width: cellSize * 1.3,
-                          height: cellSize * 1.3,
+                          width: cellSize * 1,
+                          height: cellSize * 1,
                           color: Colors.green,
                         ),
                       ),
@@ -307,7 +308,7 @@ void showSubmitHighscore(int score) {
                           height: cellSize * 1,
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Color.fromARGB(255, 76, 0, 255),
+                            color: Color.fromARGB(255, 179, 0, 0),
                           ),
                         ),
                       ),
@@ -321,6 +322,7 @@ void showSubmitHighscore(int score) {
               ),
             ),
           ),
+          
         ],
       ),
     );
