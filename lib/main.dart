@@ -35,13 +35,18 @@ class _SnakeGameState extends State<SnakeGame> {
   static const int cellSize = 20;
   static const int gridWidth = 20;
   static const int gridHeight = 35;
-  static const int speed = 300;
+  static const int initialSpeed = 300;
+  static const int speedIncreaseAmount = 25; // Percentage increase in speed
+  static const int foodPerSpeedIncrease = 2; // Number of foods eaten per speed increase;
+
+   int get speed => initialSpeed - (speedIncreaseAmount * (foodsEaten ~/ foodPerSpeedIncrease));
 
   List<Point<int>> snake = [];
   Point<int> food = const Point(0, 0);
   late Direction direction;
   late Timer timer;
   int score = 0; //  to track the score
+  int foodsEaten = 0; // to track the number of foods eaten
 
 // This method is called when the state object is inserted into the tree.
 // It calls the startGame method to initialize the game.
@@ -65,7 +70,8 @@ class _SnakeGameState extends State<SnakeGame> {
     snake = [const Point(5, 5), const Point(5, 6), const Point(5, 7)];
     direction = Direction.right;
     score = 0; // Reset score
-    timer = Timer.periodic(const Duration(milliseconds: speed), (Timer t) {
+    foodsEaten = 0; // Reset foods eaten count
+    timer = Timer.periodic(const Duration(milliseconds: initialSpeed), (Timer t) {
       updateGame();
     });
     spawnFood();
@@ -76,19 +82,19 @@ class _SnakeGameState extends State<SnakeGame> {
     Point<int> newHead = const Point(0, 0);
 
     switch (direction) {
-      case Direction.left:
-        newHead = Point(head.x - 1, head.y);
-        break;
-      case Direction.right:
-        newHead = Point(head.x + 1, head.y);
-        break;
-      case Direction.up:
-        newHead = Point(head.x, head.y - 1);
-        break;
-      case Direction.down:
-        newHead = Point(head.x, head.y + 1);
-        break;
-    }
+    case Direction.left:
+      newHead = Point((head.x - 1 + gridWidth) % gridWidth, head.y);
+      break;
+    case Direction.right:
+      newHead = Point((head.x + 1) % gridWidth, head.y);
+      break;
+    case Direction.up:
+      newHead = Point(head.x, (head.y - 1 + gridHeight) % gridHeight);
+      break;
+    case Direction.down:
+      newHead = Point(head.x, (head.y + 1) % gridHeight);
+      break;
+  }
 
     // Check if new head collides with the snake or hits the wall
     if (snake.contains(newHead) ||
@@ -105,7 +111,17 @@ class _SnakeGameState extends State<SnakeGame> {
     // Check if snake eats the food
     if (newHead == food) {
       score++; // Increment score when food is eaten
+      foodsEaten++; // Increment foods eaten count
       spawnFood();
+
+      // Check if speed needs to be increased
+      if (foodsEaten % foodPerSpeedIncrease == 0) {
+        // Increase the initial speed by the speedIncreaseAmount
+        timer.cancel();
+        timer = Timer.periodic(Duration(milliseconds: speed), (Timer t) {
+          updateGame();
+        });
+      }
     } else {
       snake.removeLast();
     }
