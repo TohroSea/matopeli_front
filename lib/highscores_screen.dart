@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-
+import 'local_storage.dart'; 
 import 'push_and_fetch_score.dart';
 
 class HighscoresScreen extends StatefulWidget {
@@ -22,6 +22,7 @@ class _HighscoresScreenState extends State<HighscoresScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _fetchHighscores(); // Fetch highscores when the widget initializes
+    _fetchLocalHighscores(); // Fetch local highscores
   }
 
   @override
@@ -29,6 +30,13 @@ class _HighscoresScreenState extends State<HighscoresScreen>
     _tabController.dispose();
     super.dispose();
   }
+
+  Future<void> _fetchLocalHighscores() async {
+  final localHighscores = await LocalStorage.getLocalHighscores();
+  setState(() {
+    this.localHighscores = localHighscores;
+  });
+}
 
   Future<void> _fetchHighscores() async {
     try {
@@ -85,7 +93,7 @@ class _HighscoresScreenState extends State<HighscoresScreen>
                             return ListTile(
                               leading: Text((index + 1).toString()), // Index number
                               title: Text(highscore['name'].toString()), // Username
-                              trailing: Text(highscore['points'].toString()), // Score
+                              trailing: Text(highscore['score'].toString()), // Score
                             );
                           },
                         ),

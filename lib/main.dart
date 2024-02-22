@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'push_and_fetch_score.dart';
 import 'main_menu.dart';
+import 'local_storage.dart';
 
 void main() {
   runApp(const SnakeGameApp());
@@ -136,7 +137,7 @@ class _SnakeGameState extends State<SnakeGame> {
       y = random.nextInt(gridHeight);
     } while (snake.contains(Point(x, y)));
     food = Point(x, y);
-  }
+  } 
 
   void gameOver() {
     showDialog(
@@ -214,14 +215,21 @@ void showSubmitHighscore(int score) {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () {
-                // Handle submitting the highscore
-                pushHighscore(username, score);
-                // print('Username: $username, Score: $score');
-                Navigator.pop(context); // Close the dialog
-                Navigator.of(context).pop();
-              },
-              child: const Text('Submit'),
+              onPressed: () async {
+              // Handle submitting the highscore
+              pushHighscore(username, score);
+              final newHighscore = {'name': username.isEmpty ? 'Player' : username, 'date': DateTime.now().toString(), 'score': score};
+              final localHighscores = await LocalStorage.getLocalHighscores();
+              localHighscores.add(newHighscore);
+              localHighscores.sort((a, b) => b['score'].compareTo(a['score'])); // Sort highscores by score
+              if (localHighscores.length > 10) {
+                localHighscores.removeRange(10, localHighscores.length); // Keep only the top 10 highscores
+              }
+              await LocalStorage.saveLocalHighscores(localHighscores); // Save updated highscores
+              Navigator.pop(context); // Close the dialog
+              Navigator.of(context).pop();
+            },
+            child: const Text('Submit'),
             ),
           ],
         );
