@@ -1,169 +1,335 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter/material.dart';
+
+import 'push_and_fetch_score.dart';
+import 'main_menu.dart';
+import 'local_storage.dart';
 
 void main() {
-  runApp(SnakeGame());
+  runApp(const SnakeGameApp());
 }
 
-class SnakeGame extends StatelessWidget {
+// This class epresents the entire application
+class SnakeGameApp extends StatelessWidget {
+  const SnakeGameApp({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        backgroundColor: Colors.black,
-        body: SnakeGameScreen(),
-      ),
+    return const MaterialApp(
+      // MaterialApp widget, that provides app structure and theme.
+      home: MainMenu(),
     );
   }
 }
 
-class SnakeGameScreen extends StatefulWidget {
+// This represents the game itself
+class SnakeGame extends StatefulWidget {
+  const SnakeGame({super.key});
+
   @override
-  _SnakeGameScreenState createState() => _SnakeGameScreenState();
+  _SnakeGameState createState() => _SnakeGameState();
 }
 
-class _SnakeGameScreenState extends State<SnakeGameScreen> {
-  static const int gridSize = 20;
-  static const int speed = 300;
+// In this class we define the basic functionality, the state of the game:
+class _SnakeGameState extends State<SnakeGame> {
+  static const int cellSize = 20;
+  static const int gridWidth = 20;
+  static const int gridHeight = 35;
+  static const int initialSpeed = 300;
+  static const int speedIncreaseAmount = 25; // Percentage increase in speed
+  static const int foodPerSpeedIncrease = 2; // Number of foods eaten per speed increase;
 
-  late List<int> snake;
-  late int food;
+   int get speed => initialSpeed - (speedIncreaseAmount * (foodsEaten ~/ foodPerSpeedIncrease));
+
+  List<Point<int>> snake = [];
+  Point<int> food = const Point(0, 0);
   late Direction direction;
-  late bool isPlaying;
-  late int score;
+  late Timer timer;
+  int score = 0; //  to track the score
+  int foodsEaten = 0; // to track the number of foods eaten
 
+// This method is called when the state object is inserted into the tree.
+// It calls the startGame method to initialize the game.
   @override
   void initState() {
     super.initState();
     startGame();
   }
 
+// This method is called when the state object is removed from the tree.
+// It cancels the timer to stop the game loop.
+  @override
+  void dispose() {
+    timer.cancel();
+    super.dispose();
+  }
+ 
+// This method initializes the game by setting up the initial state of the snake,
+// starting the game loop with a timer, and spawning the initial food.
   void startGame() {
-    const startPosition = gridSize * gridSize ~/ 2;
-    snake = [startPosition];
-    food = _generateFood();
+    snake = [const Point(5, 5), const Point(5, 6), const Point(5, 7)];
     direction = Direction.right;
-    isPlaying = true;
-    score = 0;
+    score = 0; // Reset score
+    foodsEaten = 0; // Reset foods eaten count
+    timer = Timer.periodic(const Duration(milliseconds: initialSpeed), (Timer t) {
+      updateGame();
+    });
+    spawnFood();
+  }
 
-    Timer.periodic(Duration(milliseconds: speed), (Timer timer) {
-      if (!isPlaying) {
+  void updateGame() {
+    Point<int> head = snake.first;
+    Point<int> newHead = const Point(0, 0);
+
+    switch (direction) {
+    case Direction.left:
+      newHead = Point((head.x - 1 + gridWidth) % gridWidth, head.y);
+      break;
+    case Direction.right:
+      newHead = Point((head.x + 1) % gridWidth, head.y);
+      break;
+    case Direction.up:
+      newHead = Point(head.x, (head.y - 1 + gridHeight) % gridHeight);
+      break;
+    case Direction.down:
+      newHead = Point(head.x, (head.y + 1) % gridHeight);
+      break;
+  }
+
+    // Check if new head collides with the snake or hits the wall
+    if (snake.contains(newHead) ||
+        newHead.x < 0 ||
+        newHead.x >= gridWidth ||
+        newHead.y < 0 ||
+        newHead.y >= gridHeight) {
+      timer.cancel(); // Stop the game
+      gameOver();    // Display the game over menu
+      return;
+    }
+    snake.insert(0, newHead);
+
+    // Check if snake eats the food
+    if (newHead == food) {
+      score++; // Increment score when food is eaten
+      foodsEaten++; // Increment foods eaten count
+      spawnFood();
+
+      // Check if speed needs to be increased
+      if (foodsEaten % foodPerSpeedIncrease == 0) {
+        // Increase the initial speed by the speedIncreaseAmount
         timer.cancel();
-      } else {
-        _moveSnake();
+        timer = Timer.periodic(Duration(milliseconds: speed), (Timer t) {
+          updateGame();
+        });
       }
-    });
+    } else {
+      snake.removeLast();
+    }
+    setState(() {}); // Update UI
   }
 
-  void _moveSnake() {
-    setState(() {
-      switch (direction) {
-        case Direction.up:
-          if (snake.first < gridSize) {
-            isPlaying = false;
-            return;
-          }
-          snake.insert(0, snake.first - gridSize);
-          break;
-        case Direction.down:
-          if (snake.first > (gridSize * gridSize) - gridSize) {
-            isPlaying = false;
-            return;
-          }
-          snake.insert(0, snake.first + gridSize);
-          break;
-        case Direction.left:
-          if (snake.first % gridSize == 0) {
-            isPlaying = false;
-            return;
-          }
-          snake.insert(0, snake.first - 1);
-          break;
-        case Direction.right:
-          if ((snake.first + 1) % gridSize == 0) {
-            isPlaying = false;
-            return;
-          }
-          snake.insert(0, snake.first + 1);
-          break;
-      }
-
-      if (snake.first == food) {
-        score++;
-        food = _generateFood();
-      } else {
-        snake.removeLast();
-      }
-    });
-  }
-
-  int _generateFood() {
-    final random = Random();
-    int foodIndex;
+  void spawnFood() {
+    Random random = Random();
+    int x, y;
     do {
-      foodIndex = random.nextInt(gridSize * gridSize);
-    } while (snake.contains(foodIndex));
-    return foodIndex;
+      x = random.nextInt(gridWidth);
+      y = random.nextInt(gridHeight);
+    } while (snake.contains(Point(x, y)));
+    food = Point(x, y);
+  } 
+
+  void gameOver() {
+    showDialog(
+      context: context,barrierDismissible: false, // Prevent dismissing by tapping outside
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Center(child: Text('Game Over')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [           
+              Text('Score: $score'), // Display final score
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close the dialog
+                      startGame(); // Restart the game
+                    },
+                    child: const Text('PLAY AGAIN'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close the dialog
+                      showSubmitHighscore(score); // Restart the game
+                    },
+                    child: const Text('SUBMIT SCORE'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close the dialog
+                  Navigator.of(context).pop(); // Close the game screen
+                },
+                child: const Text('EXIT'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
+
+void showSubmitHighscore(int score) {
+    String username = '';
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Center(child: Text('Submit Highscore')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Points: $score'),
+              TextField(
+                onChanged: (value) {
+                  username = value;
+                },
+                decoration: const InputDecoration(
+                  labelText: 'Username',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close the dialog
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+              // Handle submitting the highscore
+              pushHighscore(username, score);
+              final newHighscore = {'name': username.isEmpty ? 'Player' : username, 'date': DateTime.now().toString(), 'score': score};
+              final localHighscores = await LocalStorage.getLocalHighscores();
+              localHighscores.add(newHighscore);
+              localHighscores.sort((a, b) => b['score'].compareTo(a['score'])); // Sort highscores by score
+              if (localHighscores.length > 10) {
+                localHighscores.removeRange(10, localHighscores.length); // Keep only the top 10 highscores
+              }
+              await LocalStorage.saveLocalHighscores(localHighscores); // Save updated highscores
+              Navigator.pop(context); // Close the dialog
+              Navigator.of(context).pop();
+            },
+            child: const Text('Submit'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // Here we build the UI
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onVerticalDragUpdate: (details) {
-        if (details.delta.dy > 0 && direction != Direction.up) {
-          direction = Direction.down;
-        } else if (details.delta.dy < 0 && direction != Direction.down) {
-          direction = Direction.up;
-        }
-      },
-      onHorizontalDragUpdate: (details) {
-        if (details.delta.dx > 0 && direction != Direction.left) {
-          direction = Direction.right;
-        } else if (details.delta.dx < 0 && direction != Direction.right) {
-          direction = Direction.left;
-        }
-      },
-      child: Column(
+    return Scaffold(
+      backgroundColor: const Color.fromARGB(255, 10, 10, 10),
+      body: Column(
         children: [
+          const SizedBox(height: 40),
           Text(
             'Score: $score',
-            style: TextStyle(color: Colors.white, fontSize: 20),
+            style: const TextStyle(color: Colors.white, fontSize: 34),
           ),
+          
           Expanded(
-            child: GridView.builder(
-              physics: NeverScrollableScrollPhysics(),
-              itemCount: gridSize * gridSize,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: gridSize,
-              ),
-              itemBuilder: (BuildContext context, int index) {
-                if (snake.contains(index)) {
-                  return Container(
-                    padding: EdgeInsets.all(2),
-                    color: Colors.green,
-                  );
-                } else if (food == index) {
-                  return Container(
-                    padding: EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.rectangle,
-                    ),
-                  );
-                } else {
-                  return Container(
-                    padding: EdgeInsets.all(2),
-                    color: Colors.black,
-                  );
+            child: GestureDetector(
+              onVerticalDragUpdate: (details) {
+                if (details.delta.dy > 0 && direction != Direction.up) {
+                  direction = Direction.down;
+                } else if (details.delta.dy < 0 && direction != Direction.down) {
+                  direction = Direction.up;
                 }
               },
+              onHorizontalDragUpdate: (details) {
+                if (details.delta.dx > 0 && direction != Direction.left) {
+                  direction = Direction.right;
+                } else if (details.delta.dx < 0 && direction != Direction.right) {
+                  direction = Direction.left;
+                }
+              },
+              child: GridView.builder(
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: gridWidth,
+                ),
+                itemCount: gridWidth * gridHeight,
+                itemBuilder: (BuildContext context, int index) {
+                  int x = index % gridWidth;
+                  int y = index ~/ gridWidth;
+                  Point<int> point = Point(x, y);
+                  if (snake.contains(point)) {
+                    return Container(
+                      color: const Color.fromARGB(255, 0, 0, 0),
+                      child: Center(
+                        child: Container(
+                          width: cellSize * 1,
+                          height: cellSize * 1,
+                          color: Colors.green,
+                        ),
+                      ),
+                    );
+                  } else if (food == point) {
+                    return Container(
+                      color: Colors.black,
+                      child: Center(
+                        child: Container(
+                          width: cellSize * 1,
+                          height: cellSize * 1,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color.fromARGB(255, 179, 0, 0),
+                          ),
+                        ),
+                      ),
+                    );
+                  } else {
+                    return Container(
+                      color: Colors.black,
+                    );
+                  }
+                },
+              ),
             ),
           ),
+          
         ],
       ),
     );
   }
 }
 
+// Defining the possible directions the snake can move.
 enum Direction { up, down, left, right }
